@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tickbook: trade and charge accounts for Shopify</title>
+<meta name="description" content="Trade and charge accounts for Shopify. Approved customers buy on account at the till and at your online checkout, and pay by statement. You always know who owes what.">
+<link rel="canonical" href="https://tickbook.uk/">
+<meta name="theme-color" content="#0b1f38">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tickbook">
+<meta property="og:title" content="Tickbook. Put it on account.">
+<meta property="og:description" content="Trade and charge accounts for Shopify. Approved customers buy on account at the till and at your online checkout, and pay by statement. You always know who owes what.">
+<meta property="og:url" content="https://tickbook.uk/">
+<meta property="og:image" content="https://tickbook.uk/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
+<style>
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+</style>
+<style>
+/* Layout: monochrome. A black stage where one hire plays out on a floating card under a moving light, then quiet white sections with large, tight type. Teal appears only on what a customer can still spend. */
+:root{
+  color-scheme: light;
+  --black:#08080a; --black-2:#111114; --black-3:#1b1b20; --hair-d:#2a2a31; --dim:#8f8f9b; --white:#fafafb;
+  --bg:#f4f4f6; --surface:#ffffff; --ink:#0a0a0c; --muted:#676773; --hair:#e3e3e8;
+  --green:#3fd6c4; --green-ink:#0d7d72;
+  --sans:"Geist","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--black)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(22px,env(safe-area-inset-left,0px));padding-right:max(22px,env(safe-area-inset-right,0px))}
+h1,h2,h3,p{margin:0}
+h1,h2{font-weight:500;letter-spacing:-.045em;line-height:1;text-wrap:balance}
+h1{font-size:clamp(48px,8.6vw,112px)}
+h2{font-size:clamp(34px,5.2vw,64px)}
+h3{font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+i.s{font-style:normal;color:#a3a3ae}
+.stage i.s,.end i.s{color:#6f6f7b}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:8px}
+.kicker{font-size:14px;font-weight:500;color:var(--muted);letter-spacing:-.005em}
+.lede{font-size:clamp(18px,1.9vw,21px);line-height:1.5;color:var(--muted);max-width:56ch;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+.btn{display:inline-flex;align-items:center;gap:8px;font:500 15.5px/1 var(--sans);letter-spacing:-.01em;padding:14px 20px;border-radius:999px;text-decoration:none;border:0;cursor:pointer;background:var(--white);color:var(--black);transition:transform .25s var(--ease),background .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.line{background:transparent;color:var(--white);box-shadow:inset 0 0 0 1px var(--hair-d)}
+.btn.line:hover{background:var(--black-3)}
+.btn.ink{background:var(--ink);color:#fff}
+.btn svg{transition:transform .25s var(--ease)}
+.btn:hover svg{transform:translateX(3px)}
+
+/* ---------- stage ---------- */
+.stage{background:var(--black);color:var(--white);position:relative;overflow:hidden;--mx:72%;--my:18%}
+.stage .light{position:absolute;inset:0;pointer-events:none;background:radial-gradient(620px circle at var(--mx) var(--my),rgba(255,255,255,.13),rgba(255,255,255,0) 62%),radial-gradient(900px circle at 12% 110%,rgba(255,255,255,.05),transparent 60%);transition:background .2s}
+.stage .grain{position:absolute;inset:0;pointer-events:none;opacity:.5;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:3px 3px;mask-image:linear-gradient(#000,transparent 70%);-webkit-mask-image:linear-gradient(#000,transparent 70%)}
+.stage>.wrap{position:relative;z-index:1}
+nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:20px}
+.brand{display:flex;align-items:center;gap:10px;font:600 19px/1 var(--sans);letter-spacing:-.03em;text-decoration:none}
+.mark{width:26px;height:26px;border-radius:7px;background:var(--white);position:relative;flex:none}
+.mark::after{content:"";position:absolute;right:5px;bottom:5px;width:8px;height:8px;border-radius:50%;background:var(--green)}
+.links{display:flex;gap:26px;align-items:center;font-size:15px;color:var(--dim)}
+.links a{text-decoration:none;transition:color .2s}
+.links a:hover{color:#fff}
+.links .btn{color:var(--black);padding:11px 16px;font-size:14.5px}
+.hero{display:grid;grid-template-columns:minmax(0,11fr) minmax(0,9fr);gap:48px;align-items:center;padding-block:56px 40px}
+.copy{display:grid;gap:26px}
+.soon{display:inline-flex;align-items:center;gap:9px;font-size:14px;color:var(--dim);width:fit-content}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(63,214,196,.6);animation:ping 2.4s infinite}
+@keyframes ping{70%{box-shadow:0 0 0 9px rgba(63,214,196,0)}100%{box-shadow:0 0 0 0 rgba(63,214,196,0)}}
+h1 .ln{display:block;overflow:hidden;padding-bottom:.08em}
+h1 .ln>span{display:block;animation:up .9s var(--ease) both}
+h1 .ln:nth-child(2)>span{animation-delay:.09s}
+@keyframes up{from{transform:translateY(105%)}}
+.stage .lede{color:var(--dim)}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.fade{animation:fade .9s .25s var(--ease) both}
+@keyframes fade{from{opacity:.001;transform:translateY(10px)}}
+
+/* floating deposit card */
+.float{perspective:1400px;min-width:0}
+.card{background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.14);border-radius:26px;padding:24px;display:grid;gap:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 50px 90px -40px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.16);transform:rotateX(var(--rx,4deg)) rotateY(var(--ry,-9deg));transition:transform .5s var(--ease);will-change:transform;animation:fade 1s .2s var(--ease) both}
+.card-top{display:flex;justify-content:space-between;gap:12px;font-size:14px;color:var(--dim)}
+.card-top b{color:#fff;font-weight:500}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.big span{display:block;font-size:13.5px;color:var(--dim)}
+.big b{display:block;font-size:clamp(40px,5vw,60px);font-weight:500;letter-spacing:-.05em;line-height:1}
+.big .back b{color:var(--green)}
+.bar{display:flex;gap:4px;height:10px}
+.bar span{display:block;height:100%;border-radius:99px;transition:flex-basis .9s var(--ease),opacity .4s}
+.bar .k{background:#fff}
+.bar .r{background:var(--green)}
+.mail{background:#fff;color:var(--ink);border-radius:16px;padding:16px 18px;display:grid;gap:5px}
+.mail small{font-size:12.5px;color:var(--muted)}
+.mail b{font-size:16.5px;font-weight:600;letter-spacing:-.02em;line-height:1.3}
+.mail p{font-size:14.5px;line-height:1.45;color:#3c3c45}
+.swap{animation:fade .5s var(--ease) both}
+.prog{height:2px;background:var(--hair-d);border-radius:2px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:#fff}
+.prog.run i{animation:fill 5.2s linear forwards}
+@keyframes fill{to{width:100%}}
+
+/* controls + timeline */
+.play{padding-block:28px 72px;display:grid;gap:26px}
+.controls{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:center;justify-content:space-between;border-top:1px solid var(--hair-d);padding-top:26px}
+.ctl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:14.5px;color:var(--dim)}
+.seg{display:inline-flex;background:var(--black-2);border:1px solid var(--hair-d);border-radius:999px;padding:4px;gap:2px;flex-wrap:wrap}
+.seg button{font:500 14.5px/1 var(--sans);letter-spacing:-.01em;color:var(--dim);background:transparent;border:0;border-radius:999px;padding:11px 16px;cursor:pointer;transition:background .25s,color .25s}
+.seg button:hover{color:#fff}
+.seg button[aria-pressed="true"]{background:#fff;color:var(--black)}
+.tl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:26px;position:relative}
+.tl::before{content:"";position:absolute;left:0;right:0;top:5px;height:1px;background:var(--hair-d)}
+.tl li{position:relative;padding-top:26px;display:grid;gap:6px;align-content:start;animation:fade .6s var(--ease) both}
+.tl li:nth-child(2){animation-delay:.07s}.tl li:nth-child(3){animation-delay:.14s}.tl li:nth-child(4){animation-delay:.21s}
+.tl li::before{content:"";position:absolute;left:0;top:0;width:11px;height:11px;border-radius:50%;background:var(--black);border:1px solid #fff}
+.tl li.you::before{background:#fff}
+.tl li:last-child::before{background:var(--green);border-color:var(--green)}
+.tl b{font-weight:500;font-size:17px;letter-spacing:-.02em}
+.tl span{font-size:15px;color:var(--dim);line-height:1.45}
+.tl em{font-style:normal;font-size:12.5px;color:var(--black);background:#fff;border-radius:99px;padding:2px 8px;width:fit-content}
+.eg{font-size:14px;color:var(--dim)}
+
+.marq{border-top:1px solid var(--hair-d);overflow:hidden;white-space:nowrap;padding-block:26px;position:relative;z-index:1}
+.marq div{display:inline-block;animation:slide 60s linear infinite;font-size:clamp(30px,5vw,58px);font-weight:500;letter-spacing:-.045em;line-height:1}
+.marq span{margin-right:.55em;color:transparent;-webkit-text-stroke:1px #4a4a55}
+.marq span:nth-child(4n+1){color:#fff;-webkit-text-stroke:0}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* ---------- light sections ---------- */
+section.s{padding-block:clamp(72px,10vw,128px)}
+.head{display:grid;gap:18px;margin-bottom:clamp(36px,5vw,64px)}
+.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:34px;border-top:1px solid var(--ink);padding-top:28px}
+.four div{display:grid;gap:10px;align-content:start}
+.four p{font-size:16px;color:var(--muted)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.way{background:var(--surface);border-radius:28px;padding:clamp(26px,3.6vw,44px);display:grid;gap:18px;align-content:start;transition:transform .5s var(--ease),box-shadow .5s var(--ease)}
+.way:hover{transform:translateY(-6px);box-shadow:0 40px 70px -50px rgba(10,10,12,.5)}
+.way.dark{background:var(--black);color:#fff}
+.way.dark p,.way.dark li{color:var(--dim)}
+.way h3{font-size:clamp(28px,3.4vw,40px);font-weight:500;letter-spacing:-.04em;line-height:1.05}
+.way p{color:var(--muted)}
+.way ul{margin:0;padding:0;list-style:none;display:grid;gap:0;font-size:16px;color:var(--muted)}
+.way li{padding:13px 0;border-top:1px solid var(--hair)}
+.way.dark li{border-color:var(--hair-d)}
+.cmp{display:grid;border-radius:28px;overflow:hidden;background:var(--surface)}
+.cmp .r{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,5fr) minmax(0,5fr)}
+.cmp .r>span{padding:20px 24px;font-size:15px;font-weight:500;color:var(--muted);border-top:1px solid var(--hair)}
+.cmp .c{padding:20px 24px;font-size:16px;line-height:1.45;border-top:1px solid var(--hair);min-width:0}
+.cmp .c.b{background:var(--black);color:#e9e9ee;border-top-color:var(--hair-d)}
+.cmp .hd>span,.cmp .hd .c{border-top:0;padding-block:30px 26px}
+.cmp .hd small{display:block;font-size:13.5px;color:var(--muted);margin-bottom:10px}
+.cmp .hd .b small,.cmp .hd .b p{color:var(--dim)}
+.cmp .hd b{display:block;font-size:clamp(24px,2.8vw,34px);font-weight:500;letter-spacing:-.04em;line-height:1.05}
+.cmp .hd p{font-size:15.5px;color:var(--muted);margin-top:8px}
+.lt2{font-style:normal;margin-left:8px;font-size:12px;color:var(--black);background:var(--green);border-radius:99px;padding:2px 8px}
+.both{margin-top:26px;font-size:17px;color:var(--muted);max-width:70ch}
+
+/* ---------- inside the app: recreated screens, played by a cursor ---------- */
+.tour{background:var(--black);color:#fff;position:relative;overflow:hidden}
+.tour .head{margin-bottom:34px}
+.tour .lede{color:var(--dim)}
+.tgrid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,7fr);gap:clamp(24px,4vw,56px);align-items:start}
+.tabs{display:grid;gap:0;border-top:1px solid var(--hair-d)}
+.tabs button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:6px;padding:22px 0;border-bottom:1px solid var(--hair-d);color:var(--dim);transition:color .3s;position:relative;width:100%}
+.tabs button:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.tabs button b{font-size:clamp(20px,2.2vw,26px);font-weight:500;letter-spacing:-.03em;line-height:1.15;color:#6f6f7b;transition:color .3s}
+.tabs button span{font-size:15.5px;line-height:1.45;max-width:38ch;display:none}
+.tabs button[aria-selected="true"] b{color:#fff}
+.tabs button[aria-selected="true"] span{display:block}
+.tabs button i{position:absolute;left:0;bottom:-1px;height:1px;width:0;background:#fff}
+.tabs button[aria-selected="true"].run i{animation:fill var(--dur,14s) linear forwards}
+.win{background:#f1f1f1;color:#303030;border-radius:18px;overflow:hidden;box-shadow:0 60px 110px -50px #000,0 0 0 1px rgba(255,255,255,.12);font-size:13px;line-height:1.45;min-width:0}
+.chrome{display:flex;align-items:center;gap:10px;background:#1a1a1a;color:#b5b5b5;padding:10px 14px;font-size:12px}
+.chrome u{display:flex;gap:5px;text-decoration:none}
+.chrome u::before,.chrome u::after,.chrome u b{content:"";width:9px;height:9px;border-radius:50%;background:#3a3a3a;display:block}
+.chrome em{font-style:normal;flex:1;text-align:center}
+.screen{position:relative;height:480px;overflow:hidden}
+.sc{position:absolute;inset:0;padding:16px;display:grid;gap:12px;align-content:start;opacity:0;transform:translateY(8px) scale(.995);pointer-events:none;transition:opacity .45s var(--ease),transform .45s var(--ease)}
+.sc.on{opacity:1;transform:none}
+.sc.dk{background:#141716;color:#f3f5f4;padding:20px;justify-items:center}
+.sc h4{margin:0;font-size:15px;font-weight:650;letter-spacing:-.01em}
+.pc{background:#fff;border-radius:12px;box-shadow:0 0 0 1px #e3e3e3,0 1px 0 #d4d4d4;padding:14px;display:grid;gap:8px;min-width:0}
+.pc.g{background:#f7f7f7;box-shadow:none}
+.sub{color:#616161}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tiles .pc{gap:2px;padding:12px}
+.tiles b{font-size:14px}
+.tiles span{font-size:12px;color:#616161;line-height:1.3}
+.rowb{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pb{display:inline-flex;align-items:center;justify-content:center;font:600 12.5px/1 var(--sans);padding:9px 12px;border-radius:9px;background:#303030;color:#fff;white-space:nowrap;box-shadow:inset 0 -1px 0 #000;transition:transform .12s,filter .12s}
+.pb.w{background:#fff;color:#303030;box-shadow:0 0 0 1px #c9c9c9,0 1px 0 #b5b5b5}
+.pb.hit{transform:scale(.96);filter:brightness(1.35)}
+.bdg{font-size:12px;font-weight:550;padding:3px 8px;border-radius:8px;background:#e0f0ff;color:#00527c;white-space:nowrap}
+.bdg.ok{background:#cdfee1;color:#0c5132}
+.bdg.warn{background:#ffe6a5;color:#5e4200}
+.rad{display:grid;gap:7px}
+.rad span{display:flex;gap:9px;align-items:center}
+.rad span::before{content:"";width:15px;height:15px;border-radius:50%;box-shadow:inset 0 0 0 1px #8a8a8a;background:#fff;flex:none}
+.rad span.on::before{box-shadow:inset 0 0 0 4.5px #303030}
+.okl{color:#0c5132}
+.chips2{display:flex;gap:6px;flex-wrap:wrap}
+.chips2 span{font-weight:600;font-size:12.5px;padding:7px 11px;border-radius:9px;background:#fff;box-shadow:0 0 0 1px #c9c9c9}
+.chips2 span.on{background:#303030;color:#fff;box-shadow:none}
+.ta{min-height:48px;border-radius:9px;box-shadow:inset 0 0 0 1px #8a8a8a;background:#fdfdfd;padding:9px 11px}
+.ta::after{content:"";display:inline-block;width:1px;height:14px;background:#303030;vertical-align:-2px;margin-left:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ph i{width:58px;height:44px;border-radius:8px;display:block;background:linear-gradient(135deg,#c9b9a6,#8d7c6a);position:relative}
+.ph i+i{background:linear-gradient(135deg,#9aa7ad,#5e6b72)}
+.ph i::after{content:"";position:absolute;right:4px;bottom:4px;width:13px;height:13px;border-radius:4px;background:#303030 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 13'%3E%3Cpath d='M3 6.8l2.3 2.2L10 4.3' fill='none' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E")}
+.nf{display:inline-flex;align-items:center;justify-content:space-between;width:120px;border-radius:9px;box-shadow:inset 0 0 0 1px #8a8a8a;background:#fdfdfd;padding:8px 11px;font-variant-numeric:tabular-nums}
+.cp{width:min(100%,360px);display:grid;gap:10px;font-size:13px}
+.cp .br{display:flex;align-items:center;gap:9px;font-weight:650;font-size:14px}
+.cp .br i{width:26px;height:26px;border-radius:7px;background:#fff;color:#141716;display:grid;place-items:center;font:700 10.5px/1 var(--sans);font-style:normal}
+.cp .br small{margin-left:auto;font-weight:400;font-size:11px;color:#8d9794}
+.cp .pl{font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:99px;background:#3a2a17;color:#f6c177;width:fit-content}
+.cp .pl.ok{background:#17382b;color:#7fe0b4}
+.cp h4{font-size:18px;letter-spacing:-.02em}
+.cp .wh{border-left:2px solid #3fd6c4;padding-left:10px}
+.cp .wh small{display:block;font-size:10.5px;letter-spacing:.08em;color:#8d9794;font-weight:600}
+.cp .tb{background:#1d2221;border-radius:10px;padding:2px 12px}
+.cp .tb div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #2a302f;font-variant-numeric:tabular-nums}
+.cp .tb div:first-child{border:0}
+.cp .tb span{color:#aab3b0}
+.cp .go{background:#0f2a4a;color:#fff;font-weight:600;text-align:center;border-radius:9px;padding:11px;transition:transform .12s,filter .12s}
+.cp .go.hit{transform:scale(.97);filter:brightness(1.2)}
+.cp .alt{text-align:center;border-radius:9px;padding:9px;box-shadow:inset 0 0 0 1px #5a6462;font-weight:550}
+.cur{position:absolute;left:0;top:0;width:22px;height:22px;z-index:5;pointer-events:none;transform:translate(60%,70%);transition:transform .85s cubic-bezier(.4,.1,.2,1);filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.cur.tap::after{content:"";position:absolute;left:-9px;top:-9px;width:24px;height:24px;border-radius:50%;border:2px solid #303030;animation:tap .5s ease-out forwards}
+.sc.dk~.cur.tap::after{border-color:#fff}
+@keyframes tap{from{transform:scale(.3);opacity:.9}to{transform:scale(1.5);opacity:0}}
+.done{display:grid;gap:6px;justify-items:start}
+.tk{width:34px;height:34px;border-radius:50%;background:#cdfee1;display:grid;place-items:center}
+.tk::after{content:"";width:8px;height:14px;border:solid #0c5132;border-width:0 2.4px 2.4px 0;transform:rotate(45deg) translate(-1px,-2px)}
+.sees{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.see{background:var(--surface);border-radius:24px;padding:22px;display:grid;gap:16px;align-content:start;transition:transform .5s var(--ease)}
+.see:hover{transform:translateY(-6px)}
+.see>p{font-size:15.5px;color:var(--muted)}
+.shot{background:var(--bg);border-radius:14px;padding:14px;font-size:13px;display:grid;gap:8px;min-height:150px;align-content:start}
+.shot .row{display:flex;justify-content:space-between;gap:10px}
+.shot .row span:last-child{font-variant-numeric:tabular-nums}
+.shot hr{border:0;border-top:1px solid var(--hair);margin:2px 0;width:100%}
+.shot .m{color:var(--muted)}
+.agree{display:flex;gap:8px;align-items:flex-start;background:var(--surface);border-radius:9px;padding:9px}
+.agree i{width:16px;height:16px;border-radius:5px;background:var(--ink);flex:none;margin-top:2px;position:relative}
+.agree i::after{content:"";position:absolute;left:5.5px;top:2.5px;width:4px;height:8px;border:solid #fff;border-width:0 1.6px 1.6px 0;transform:rotate(45deg)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--ink);color:#fff;border-radius:99px;padding:4px 10px;font-size:12px;width:fit-content}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--green)}
+.price-top{display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap;margin-bottom:clamp(30px,4vw,48px)}
+.price-top .head{margin:0}
+.seg.lt{background:var(--surface);border-color:var(--hair)}
+.seg.lt button{color:var(--muted)}
+.seg.lt button:hover{color:var(--ink)}
+.seg.lt button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.plans{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.plan{background:var(--surface);border-radius:24px;padding:26px;display:grid;gap:8px;align-content:start;transition:transform .5s var(--ease)}
+.plan:hover{transform:translateY(-6px)}
+.plan.pick{background:var(--black);color:#fff}
+.plan.pick .d,.plan.pick .p small{color:var(--dim)}
+.plan .n{font-size:15px;font-weight:500;display:flex;justify-content:space-between;gap:8px}
+.plan .n em{font-style:normal;font-size:12px;color:var(--black);background:var(--green);border-radius:99px;padding:2px 8px}
+.plan .p{font-size:clamp(40px,4.4vw,56px);font-weight:500;letter-spacing:-.05em;line-height:1.05;font-variant-numeric:tabular-nums}
+.plan .p small{font-size:15px;font-weight:400;letter-spacing:-.01em;color:var(--muted)}
+.plan .d{font-size:15px;color:var(--muted)}
+.notes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 34px;margin-top:34px;font-size:15px;color:var(--muted)}
+.cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(30px,6vw,90px);align-items:start}
+.cols .head{margin:0;position:sticky;top:calc(24px + env(safe-area-inset-top,0px))}
+.rows p{padding:18px 0;border-top:1px solid var(--hair);font-size:17px;letter-spacing:-.01em;display:flex;gap:14px}
+.rows p:last-child{border-bottom:1px solid var(--hair)}
+.rows p::before{content:"";flex:none;width:9px;height:9px;border-radius:50%;background:var(--green-ink);margin-top:9px}
+.rows p.no{color:var(--muted)}
+.rows p.no::before{background:transparent;box-shadow:inset 0 0 0 1.5px #b4b4bf}
+.rows p>span{min-width:0}
+details{border-top:1px solid var(--hair);padding:20px 0}
+details:last-child{border-bottom:1px solid var(--hair)}
+summary{cursor:pointer;font-size:19px;font-weight:500;letter-spacing:-.02em;line-height:1.3;list-style:none;display:flex;justify-content:space-between;gap:18px;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"";flex:none;width:12px;height:12px;background:linear-gradient(var(--ink),var(--ink)) center/100% 1.5px no-repeat,linear-gradient(var(--ink),var(--ink)) center/1.5px 100% no-repeat;transition:transform .35s var(--ease)}
+details[open] summary::after{transform:rotate(135deg)}
+details p{margin-top:12px;color:var(--muted);max-width:64ch}
+.end{background:var(--black);color:#fff;border-radius:36px;padding:clamp(30px,6vw,84px);display:grid;gap:34px;position:relative;overflow:hidden;--mx:80%;--my:0%}
+.end .light{position:absolute;inset:0;pointer-events:none;background:radial-gradient(520px circle at var(--mx) var(--my),rgba(255,255,255,.14),transparent 62%)}
+.end>*:not(.light){position:relative}
+.end h2{font-size:clamp(40px,7vw,92px)}
+.end .lede{color:var(--dim)}
+.sig{display:flex;align-items:center;gap:12px;font-size:15px;color:var(--dim)}
+.sig b{color:#fff;font-weight:500}
+.av{width:38px;height:38px;border-radius:50%;background:#fff;color:var(--black);display:grid;place-items:center;font-weight:600;font-size:15px;flex:none}
+.addr{display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--hair-d);padding-top:28px}
+.addr code{font:500 clamp(18px,2.6vw,26px)/1.2 var(--sans);letter-spacing:-.03em;user-select:all;overflow-wrap:anywhere}
+.addr small{font-size:14px;color:var(--dim);flex-basis:100%}
+footer{padding-block:40px 52px;font-size:14px;color:var(--muted);display:grid;gap:14px}
+footer nav{padding:0;justify-content:flex-start;gap:8px 24px;font-size:15px;flex-wrap:wrap;color:var(--ink)}
+footer a{text-decoration:none}
+footer a:hover{text-decoration:underline}
+.rev{transition:transform .9s var(--ease)}
+.rev.pre{transform:translateY(28px)}
+@media (max-width:960px){
+  .tgrid{grid-template-columns:1fr}
+  .tabs{grid-auto-flow:column;grid-auto-columns:1fr;border:0;gap:6px}
+  .tabs button{padding:10px 8px;border:1px solid var(--hair-d);border-radius:12px;text-align:center}
+  .tabs button b{font-size:14.5px;letter-spacing:-.01em}
+  .tabs button[aria-selected="true"]{background:#fff}
+  .tabs button[aria-selected="true"] b{color:var(--black)}
+  .tabs button span,.tabs button i{display:none!important}
+  .tiles{grid-template-columns:1fr 1fr}
+  .screen{height:520px}
+  .hero,.two,.cols{grid-template-columns:1fr}
+  .cols .head{position:static}
+  .four,.sees,.plans,.notes,.tl{grid-template-columns:1fr 1fr}
+  .tl::before{display:none}
+  .links a:not(.btn){display:none}
+  .card{transform:none!important}
+  .hero{padding-block:34px 24px;gap:34px}
+}
+@media (max-width:720px){
+  .cmp{background:transparent;border-radius:0;gap:14px;overflow:visible}
+  .cmp .hd{display:none}
+  .cmp .r{grid-template-columns:1fr;border-radius:20px;overflow:hidden;background:var(--surface)}
+  .cmp .r>span{border:0;padding:18px 20px 4px;color:var(--ink);font-size:17px}
+  .cmp .c{border:0;padding:12px 20px 18px}
+  .cmp .c::before{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  .cmp .c.a::before{content:"Saved on their card"}
+  .cmp .c.b::before{content:"Paid at checkout";color:var(--dim)}
+}
+@media (max-width:540px){
+  body{font-size:16px}
+  .four,.sees,.plans,.notes,.tl{grid-template-columns:1fr}
+  .tl{gap:20px}
+  .seg{border-radius:18px}
+  .controls{justify-content:flex-start}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}.rev.pre{transform:none}.card{transform:none}}
+
+.who p{padding:20px 0;border-top:1px solid var(--hair);display:grid;grid-template-columns:minmax(0,5fr) minmax(0,8fr);gap:20px;font-size:17px;letter-spacing:-.01em}
+.who p:last-child{border-bottom:1px solid var(--hair)}
+.who b{font-weight:500}.who span{color:var(--muted)}
+.one{background:var(--black);color:#fff;border-radius:28px;padding:clamp(26px,4vw,48px);display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(24px,5vw,70px);align-items:center}
+.one .p{font-size:clamp(64px,10vw,128px);font-weight:500;letter-spacing:-.06em;line-height:.9}
+.one .p small{font-size:18px;letter-spacing:-.01em;color:var(--dim);font-weight:400}
+.one .d{color:var(--dim);margin-top:14px;max-width:34ch}
+.one ul{list-style:none;margin:0;padding:0;font-size:17px}
+.one li{padding:14px 0;border-top:1px solid var(--hair-d);display:flex;gap:12px}
+.one li::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--green);margin-top:9px}
+.lp{width:min(100%,380px);display:grid;gap:10px;font-size:13px;background:#fff;border-radius:12px;padding:16px;box-shadow:0 0 0 1px #e3e3e3}
+.lp h4{font-size:17px}.lp .due{font-size:15px;font-weight:650}
+.lp .tb{background:#f6f6f6;border-radius:10px;padding:2px 12px}
+.lp .tb div{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #e6e6e6;font-variant-numeric:tabular-nums}
+.lp .tb div:first-child{border:0}
+.lp .rd{display:grid;gap:7px}
+.sc.ct{justify-items:center}
+@media (max-width:960px){.one,.who p{grid-template-columns:1fr}.who p{gap:4px}}
+
+/* ---------- Tickbook's own identity: a ledger. Paper stage, navy ink, ruled lines, squarer corners. ---------- */
+:root{--black:#0b1f38;--black-2:#12294a;--black-3:#1a3560;--hair-d:#294770;--dim:#9fb2ca;--ink:#0b1f38;--bg:#f2f4f7;--hair:#dde2e9;--muted:#5d6b7e;--rule:#e6eaf0}
+body::before{background:#fff}
+.btn{border-radius:10px;background:var(--ink);color:#fff}
+.btn.line{color:var(--ink);box-shadow:inset 0 0 0 1px #b9c3d1}
+.btn.line:hover{background:#eef1f5}
+.tour .btn,.end .btn{background:#fff;color:var(--ink)}
+.end .btn.line{background:transparent;color:#fff;box-shadow:inset 0 0 0 1px var(--hair-d)}
+.stage{background:#fff;color:var(--ink);background-image:repeating-linear-gradient(to bottom,transparent 0 43px,var(--rule) 43px 44px)}
+.stage::before{content:"";position:absolute;top:0;bottom:0;left:max(8px,calc(50% - 606px));width:1px;background:var(--green);opacity:.55}
+.stage .light{background:radial-gradient(560px circle at var(--mx) var(--my),rgba(63,214,196,.16),rgba(63,214,196,0) 62%)}
+.stage .grain{display:none}
+.stage nav,.stage .hero,.stage .play{background:transparent}
+.links{color:var(--muted)}
+.links a:hover{color:var(--ink)}
+.links .btn{color:#fff}
+.mark{background:var(--ink);border-radius:6px}
+.mark::after{right:auto;bottom:auto;left:8px;top:5px;width:7px;height:12px;border-radius:0;background:transparent;border:solid var(--green);border-width:0 2.4px 2.4px 0;transform:rotate(45deg)}
+.soon{color:var(--muted)}
+.stage i.s{color:#a3aebd}
+.stage .lede{color:var(--muted)}
+h1{letter-spacing:-.05em}
+.card{background:#fff;border:1px solid var(--ink);border-radius:14px;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:10px 10px 0 var(--ink);padding:0;gap:0;overflow:hidden}
+.card>*{padding-inline:22px}
+.card-top{padding-block:16px;color:var(--muted);border-bottom:1px solid var(--ink)}
+.card-top b{color:var(--ink)}
+.big{padding-block:20px 6px}
+.big span{color:var(--muted)}
+.big b{color:var(--ink)}
+.big .back b{color:var(--green-ink)}
+.bar{padding-bottom:18px}
+.bar .k{background:var(--ink)}
+.bar .r{background:var(--green)}
+.led{display:grid;border-top:1px solid var(--hair);font-size:13.5px;padding-inline:0}
+.led div{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;padding:9px 22px;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums;color:var(--muted)}
+.led div b{font-weight:500;color:var(--ink)}
+.led .new{background:#f2fbf9;color:var(--ink)}
+.led .new.held{background:#fff6e3}
+.led .tag{font-size:11.5px;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--ink);color:#fff}
+.led .held .tag{background:#8a5a00}
+.mail{background:transparent;border-radius:0;padding-block:14px 16px;color:var(--ink)}
+.mail small{color:var(--muted)}
+.mail p{color:var(--muted)}
+.prog{padding:0;background:var(--rule)}
+.prog i{background:var(--ink)}
+.controls{border-top:1px solid var(--ink)}
+.ctl{color:var(--muted)}
+.seg{background:#eef1f5;border-color:var(--hair);border-radius:10px}
+.seg button{border-radius:7px;color:var(--muted)}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.tl::before{background:var(--hair)}
+.tl li::before{background:#fff;border-color:var(--ink);border-radius:2px}
+.tl li.you::before{background:var(--ink)}
+.tl li:last-child::before{background:var(--green);border-color:var(--green)}
+.tl span,.eg{color:var(--muted)}
+.tl em{background:var(--ink);color:#fff;border-radius:5px}
+.marq{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);background:#fff;padding-block:18px}
+.marq div{font-size:clamp(20px,2.6vw,30px);letter-spacing:-.03em}
+.marq span{color:var(--ink);-webkit-text-stroke:0;margin-right:0}
+.marq span:nth-child(4n+1){color:var(--ink)}
+.marq span::after{content:"";display:inline-block;width:.34em;height:.62em;border:solid var(--green);border-width:0 3px 3px 0;transform:rotate(45deg) translateY(-.12em);margin:0 1.1em 0 1em}
+.four{border-top:1px solid var(--ink)}
+.cmp,.way,.see,.plan,.one,.pc{border-radius:14px}
+.cmp{box-shadow:0 0 0 1px var(--ink)}
+.end{border-radius:14px;box-shadow:10px 10px 0 var(--green)}
+.one{box-shadow:10px 10px 0 var(--green)}
+.win{border-radius:12px;box-shadow:10px 10px 0 var(--green),0 0 0 1px rgba(255,255,255,.14)}
+.way:hover{box-shadow:8px 8px 0 var(--ink)}
+.way.dark:hover{box-shadow:8px 8px 0 var(--green)}
+.way{box-shadow:0 0 0 1px var(--hair)}
+.tabs button[aria-selected="true"]{}
+.tabs button b{color:#6f86a6}
+i.s{color:#9aa6b6}
+.tour i.s,.end i.s{color:#6f86a6}
+.av{background:var(--green);border-radius:8px}
+details summary::after{background:linear-gradient(var(--ink),var(--ink)) center/100% 1.5px no-repeat,linear-gradient(var(--ink),var(--ink)) center/1.5px 100% no-repeat}
+@media (max-width:960px){.tabs button[aria-selected="true"] b{color:var(--ink)}.card{box-shadow:6px 6px 0 var(--ink)}.end,.one,.win{box-shadow:6px 6px 0 var(--green)}}
+
+/* ---------- a different page, not a different paint job ---------- */
+nav{border-bottom:1px solid var(--ink)}
+.stage .light{display:none}
+.hero.h2{display:block;padding-block:clamp(40px,7vw,88px) 34px}
+.hero.h2 h1{font-size:clamp(54px,12.4vw,168px);letter-spacing:-.06em;line-height:.92;margin:18px 0 30px;font-weight:500}
+i.s,.stage i.s,.tour i.s,.end i.s{color:inherit;background:linear-gradient(to top,rgba(63,214,196,.5) 0 .26em,transparent .26em) no-repeat;background-size:100% 100%;padding-inline:.04em}
+.hl{animation:mark 1.1s .35s var(--ease) both}
+@keyframes mark{from{background-size:0 100%}}
+.sub2{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:28px;align-items:end}
+.sub2 .cta{justify-content:flex-end}
+.book{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);background:#fff;border:1px solid var(--ink);border-radius:14px;box-shadow:10px 10px 0 var(--ink);margin-bottom:clamp(48px,7vw,84px);overflow:hidden}
+.pg{min-width:0}
+.pg.left{padding:clamp(20px,3vw,34px);border-right:1px solid var(--ink);display:grid;gap:20px;align-content:start;background:#fbfcfd}
+.pg.left h3{font-size:22px;font-weight:500;letter-spacing:-.03em}
+.book .ctl{display:grid;gap:8px;font-size:13.5px}
+.book .seg{display:grid;grid-template-columns:1fr 1fr;width:100%}
+.book .seg button{text-align:center;padding:12px 8px}
+.book .card{border:0;border-radius:0;box-shadow:none;transform:none!important;animation:none;height:100%;align-content:start}
+.book .tl{grid-template-columns:1fr;gap:0;counter-reset:n}
+.book .tl::before{display:none}
+.book .tl li{padding:13px 0 13px 38px;border-top:1px solid var(--rule);counter-increment:n;gap:2px}
+.book .tl li::before{content:counter(n);left:0;top:13px;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;font-size:12.5px;font-weight:600;color:var(--ink);background:#fff;border:1px solid var(--ink)}
+.book .tl li.you::before{background:var(--ink);color:#fff}
+.book .tl li:last-child::before{background:var(--green);border-color:var(--green);color:var(--ink)}
+.book .tl em{position:absolute;right:0;top:13px}
+.book .tl b{font-size:16px}
+.dk2 .way ul{gap:0}
+.dk2 .way li{display:grid;gap:3px;padding:16px 0}
+.dk2 .way li b{font-size:13.5px;font-weight:500;color:var(--ink)}
+.dk2 .way.dark li b{color:var(--green)}
+.dk2 .way h3{font-size:clamp(40px,6vw,76px);letter-spacing:-.05em}
+.tgrid{grid-template-columns:1fr;gap:0}
+.tabs{grid-auto-flow:column;grid-auto-columns:1fr;border:0;gap:4px;align-items:end}
+.tabs button{padding:15px 18px;border:1px solid var(--hair-d);border-bottom:0;border-radius:10px 10px 0 0;text-align:left}
+.tabs button b{font-size:clamp(15px,1.6vw,19px);letter-spacing:-.02em}
+.tabs button span,.tabs button i{display:none!important}
+.tabs button[aria-selected="true"]{background:#f1f1f1;border-color:#f1f1f1}
+.tabs button[aria-selected="true"] b{color:var(--ink)}
+.win{border-radius:0 0 12px 12px}
+.chrome{display:none}
+.cap{margin-top:26px;color:var(--dim);font-size:18px;max-width:60ch;letter-spacing:-.01em}
+.four{grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink);border-radius:14px;background:#fff;padding:0;overflow:hidden}
+.four div{padding:clamp(20px,3vw,34px);border-top:1px solid var(--hair);border-left:1px solid var(--hair)}
+.four div:nth-child(-n+2){border-top:0}
+.four div:nth-child(odd){border-left:0}
+.four h3{font-size:22px;font-weight:500;letter-spacing:-.03em;display:flex;gap:12px;align-items:center}
+.four h3::before{content:"";flex:none;width:8px;height:15px;border:solid var(--green);border-width:0 3px 3px 0;transform:rotate(45deg) translate(-2px,-2px);margin-inline:6px 4px}
+#questions .cols{grid-template-columns:1fr}
+#questions .cols .head{position:static}
+#questions .cols>div:last-child{columns:2;column-gap:44px}
+#questions details{break-inside:avoid}
+.end{background:#fff;color:var(--ink);border:1px solid var(--ink);box-shadow:10px 10px 0 var(--ink)}
+.end .light{display:none}
+.end .lede,.end .sig,.end .addr small{color:var(--muted)}
+.end .sig b{color:var(--ink)}
+.end .addr{border-top:1px solid var(--ink)}
+.end .btn{background:var(--ink);color:#fff}
+.end .soon{color:var(--muted)}
+@media (max-width:960px){
+  .sub2,.book{grid-template-columns:1fr}
+  .sub2 .cta{justify-content:flex-start}
+  .pg.left{border-right:0;border-bottom:1px solid var(--ink)}
+  .book{box-shadow:6px 6px 0 var(--ink)}
+  .tabs{grid-auto-flow:row;gap:4px}
+  .tabs button{border:1px solid var(--hair-d);border-radius:10px;text-align:left;padding:12px 14px}
+  .tabs button[aria-selected="true"]{background:#fff}
+  .win{border-radius:12px;margin-top:12px}
+  #questions .cols>div:last-child{columns:1}
+  .end{box-shadow:6px 6px 0 var(--ink)}
+}
+@media (max-width:540px){.four{grid-template-columns:1fr}.four div{border-left:0;border-top:1px solid var(--hair)}.four div:nth-child(2){border-top:1px solid var(--hair)}.book .seg{grid-template-columns:1fr 1fr}}
+
+.hero.h2 h1{line-height:1;margin:14px 0 44px;font-size:clamp(58px,13vw,176px)}
+.hero.h2 h1 i.s{background:linear-gradient(to top,transparent 0 .1em,rgba(63,214,196,.55) .1em .3em,transparent .3em) no-repeat;background-size:100% 100%}
+.book .card{display:flex;flex-direction:column}
+.book .led{flex:1;align-content:start;background:repeating-linear-gradient(to bottom,transparent 0 37px,var(--rule) 37px 38px)}
+.book .led div{background:#fff}
+.book .led .new{background:#f2fbf9}
+.book .led .new.held{background:#fff6e3}
+.book .mail{border-top:1px solid var(--ink)}
+.cur{transform:translate(520px,360px)}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="light"></div><div class="grain"></div>
+  <div class="wrap">
+    <nav aria-label="Main">
+      <a class="brand" href="#top"><span class="mark"></span>Tickbook</a>
+      <div class="links">
+        <a href="#places">Till and online</a>
+        <a href="#app">The app</a>
+        <a href="#who">Who it's for</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#questions">Questions</a>
+        <a class="btn" href="#live">Tell me when it's live</a>
+      </div>
+    </nav>
+
+    <header class="hero h2" id="top">
+      <span class="soon fade"><span class="dot"></span>Coming soon to the Shopify App Store</span>
+      <h1>Put it<br><i class="s hl">on account.</i></h1>
+      <div class="sub2 fade">
+        <p class="lede">Trade and charge accounts for Shopify. Your approved customers buy on account at the till and at your online checkout, and pay by statement. You always know who owes what.</p>
+        <div class="cta">
+          <a class="btn" href="#live">Tell me when it's live <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg></a>
+          <a class="btn line" href="#play">Follow one order</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="book" id="play">
+      <div class="pg left">
+        <h3>Follow one order through the book</h3>
+        <div class="ctl"><span>They buy</span><div class="seg" role="group" aria-label="Where the customer buys">
+          <button type="button" id="m-till" data-m="till" aria-pressed="true">At the till</button>
+          <button type="button" id="m-web" data-m="web" aria-pressed="false">Online</button>
+        </div></div>
+        <div class="ctl"><span>Their account is</span><div class="seg four4" role="group" aria-label="The state of the account">
+          <button type="button" id="o-ok" data-o="ok" aria-pressed="true">In good order</button>
+          <button type="button" id="o-over" data-o="over" aria-pressed="false">Over the limit</button>
+          <button type="button" id="o-due" data-o="due" aria-pressed="false">Overdue</button>
+          <button type="button" id="o-hold" data-o="hold" aria-pressed="false">On hold</button>
+        </div></div>
+        <ol class="tl" id="steps"></ol>
+        <p class="eg">An example account with a £1,000 credit limit. You set the limit, the terms and who gets an account.</p>
+      </div>
+      <div class="pg right" id="float">
+        <div class="card" id="card" aria-live="polite">
+          <div class="card-top"><span><b>Harbour Joinery</b> · TA-0042 · £1,000 limit</span><b id="mt"></b></div>
+          <div class="big">
+            <div><b class="num" id="vk">£363.50</b><span>balance</span></div>
+            <div class="back"><b class="num" id="vr">£636.50</b><span>available credit</span></div>
+          </div>
+          <div class="bar" aria-hidden="true"><span class="k" id="bk"></span><span class="r" id="br"></span></div>
+          <div class="led" aria-hidden="true">
+            <div><span>1 Sep</span><span>Balance brought forward</span><b>£245.50</b></div>
+            <div><span>4 Sep</span><span>Order #1042 · PO 77</span><b>£180.00</b></div>
+            <div><span>12 Sep</span><span>Payment, bank transfer</span><b>−£200.00</b></div>
+            <div><span>25 Sep</span><span>Order #1051</span><b>£138.00</b></div>
+            <div class="new" id="row"><span>Today</span><span id="rt"></span><b id="ra"></b></div>
+          </div>
+          <div class="mail" id="mail">
+            <small id="ml"></small>
+            <b id="ms"></b>
+            <p id="mb"></p>
+          </div>
+          <div class="prog" id="prog" aria-hidden="true"><i></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="marq" aria-hidden="true"><div id="marq"></div></div>
+</div>
+
+<section class="s" id="places">
+  <div class="wrap">
+    <div class="head rev">
+      <span class="kicker">One account, two places</span>
+      <h2>At the till and online. <i class="s">One balance, one limit, one statement.</i></h2>
+      <p class="lede">A trade customer who buys at your counter on Monday and on your website on Thursday has one account, not two.</p>
+    </div>
+    <div class="two dk2 rev">
+      <div class="way">
+        <span class="kicker">In your shop, with Shopify POS</span>
+        <h3>At the till.</h3>
+        <ul>
+          <li><b>How they buy</b>Your staff add the customer to the cart and finish the sale with Mark unpaid. It goes on the account.</li>
+          <li><b>What's checked first</b>The till tile shows the balance, what's overdue, the credit limit and the available credit before the sale.</li>
+          <li><b>Over the limit, overdue or on hold</b>The tile warns your staff, and they decide. You can also require a manager's approval code.</li>
+          <li><b>Getting the goods</b>They take it with them.</li>
+          <li><b>Paying it off</b>Take a payment at the till, or record a cheque or bank transfer in the admin.</li>
+        </ul>
+      </div>
+      <div class="way dark">
+        <span class="kicker" style="color:var(--dim)">On your website, at checkout</span>
+        <h3>Online.</h3>
+        <ul>
+          <li><b>How they buy</b>A signed-in customer with an account chooses Pay on account at checkout. Nothing to pay then.</li>
+          <li><b>What's checked first</b>Tickbook checks the account and the order against the limit before Pay on account is offered.</li>
+          <li><b>Over the limit, overdue or on hold</b>By default they still see it, marked "needs approval" with the reason, and the order waits for you to approve or decline.</li>
+          <li><b>Getting the goods</b>Click and collect at any of your locations, or delivery.</li>
+          <li><b>Paying it off</b>A link on their statement to pay online, once you switch that on.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="both rev">Either way, payments settle the oldest orders first, and every account gets a statement each month.</p>
+  </div>
+</section>
+
+<section class="s tour" id="app">
+  <div class="wrap">
+    <div class="head rev">
+      <span class="kicker" style="color:var(--dim)">Inside the app</span>
+      <h2>The accounts side of the shop, <i class="s">without the spreadsheet.</i></h2>
+      <p class="lede">Recreated from Tickbook's own screens, with its real wording. Each job is a couple of clicks.</p>
+    </div>
+    <div class="tgrid rev">
+      <div class="tabs" role="tablist" aria-label="App tours">
+        <button role="tab" id="tt-ex" data-t="ex" aria-selected="true"><b>An order that needs your say</b><span>An online order over the customer's limit doesn't vanish and isn't refused. It waits, with the reason, for you to approve or decline.</span><i></i></button>
+        <button role="tab" id="tt-pay" data-t="pay" aria-selected="false"><b>A payment, applied for you</b><span>Find the account, enter what came in. Tickbook pays off the oldest orders first and emails the receipt.</span><i></i></button>
+        <button role="tab" id="tt-st" data-t="st" aria-selected="false"><b>The monthly statement</b><span>What your customer receives: what's due, what's overdue, every order and payment, and a link to pay online.</span><i></i></button>
+      </div>
+      <div class="win" aria-label="A recreation of the Tickbook app">
+        <div class="chrome"><u><b></b></u><em id="crumb">Tickbook · Exceptions</em></div>
+        <div class="screen" id="screen">
+          <div class="sc on" id="s-ex1">
+            <h4>Exceptions</h4>
+            <div class="pc"><div class="rowb"><b>Order #1060 · £420.00</b><span class="bdg warn">Needs approval</span></div>
+              <span class="sub">Łukasz Kowalski · Harbour Joinery · Pay on account</span>
+              <span>£120.00 over limit. It hasn't gone on their account. Its fulfilment is on hold in Shopify until you decide.</span>
+              <div class="rowb" style="justify-content:flex-start"><span class="pb" id="b-ap">Approve</span><span class="pb w">Decline</span></div>
+            </div>
+            <div class="pc g"><span class="sub">Approve puts it on their account. Decline cancels the order.</span></div>
+          </div>
+          <div class="sc" id="s-ex2">
+            <div class="pc done"><span class="tk"></span><h4>Order #1060 approved</h4><span class="sub">£420.00 is on Harbour Joinery's account, and the order is released to be fulfilled.</span></div>
+            <div class="pc"><div class="rowb"><b>Harbour Joinery</b><span class="bdg">Active</span></div><span class="sub">TA-0042</span><span>Balance £783.50 · Credit limit £1,000.00</span></div>
+          </div>
+
+          <div class="sc" id="s-pay1">
+            <h4>Receive a payment</h4>
+            <div class="pc"><b>Whose account?</b><span class="sub">Account number, name or email</span>
+              <div class="rowb"><div class="ta" id="ta" style="flex:1;min-height:0"></div><span class="pb" id="b-find">Find</span></div>
+            </div>
+          </div>
+          <div class="sc" id="s-pay2">
+            <h4>Receive a payment: Harbour Joinery</h4>
+            <div class="pc"><b>Payment</b>
+              <div class="rowb"><span class="sub">Amount (GBP)</span><span class="nf"><span>200.00</span></span></div>
+              <div class="rowb"><span class="sub">Paid by</span><span class="nf"><span>Bank transfer</span></span></div>
+              <div class="agree" style="background:#f7f7f7"><i></i><span>Email the receipt to the customer</span></div>
+            </div>
+            <div class="pc"><b>What it pays off</b><span class="sub">The oldest first, unless you choose.</span>
+              <div><span class="pb" id="b-rec">Record payment</span></div>
+            </div>
+          </div>
+          <div class="sc" id="s-pay3">
+            <div class="pc done"><span class="tk"></span><h4>£200.00 received</h4><span class="sub">Applied to the opening balance: £200.00. The receipt has been emailed.</span></div>
+            <div class="pc"><div class="rowb"><b>Harbour Joinery</b><span class="bdg">Active</span></div><span class="sub">TA-0042</span><span>Balance £163.50 · Available credit £836.50</span></div>
+          </div>
+
+          <div class="sc ct" id="s-st1">
+            <div class="lp">
+              <span class="sub">Your statement from Zoë's Tool Merchants · 1 October 2026</span>
+              <span class="due">Amount due: £363.50 by 31 October 2026</span>
+              <span class="sub">£245.50 of this is already overdue.</span>
+              <div class="tb"><div><span>Balance brought forward</span><b>£245.50</b></div><div><span>Charges</span><b>£318.00</b></div><div><span>Payments and credits</span><b>£200.00</b></div><div><b>Closing balance</b><b>£363.50</b></div></div>
+              <div><span class="pb" id="b-link">Pay your balance online</span></div>
+            </div>
+          </div>
+          <div class="sc ct" id="s-st2">
+            <div class="lp">
+              <h4>Zoë's Tool Merchants</h4>
+              <span>You owe <b>£363.50</b>, of which £245.50 is overdue.</span>
+              <b>How much would you like to pay?</b>
+              <div class="rad"><span class="on">The full balance: £363.50</span><span>The overdue amount: £245.50</span><span>Another amount</span></div>
+              <div><span class="pb" id="b-cont">Continue to payment</span></div>
+            </div>
+          </div>
+          <div class="sc" id="s-st3">
+            <div class="pc done"><span class="tk"></span><h4>Paid online: £363.50</h4><span class="sub">It settles the open orders on the account, oldest first.</span></div>
+            <div class="pc"><div class="rowb"><b>Harbour Joinery</b><span class="bdg">Active</span></div><span class="sub">TA-0042</span><span>Balance £0.00 · Available credit £1,000.00</span></div>
+          </div>
+          <svg class="cur" id="cur" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 2l14 7-6 2-2 6z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </div>
+      </div>
+      <p class="cap" id="cap"></p>
+    </div>
+  </div>
+</section>
+
+<section class="s">
+  <div class="wrap">
+    <div class="head rev">
+      <span class="kicker">Why shops use it</span>
+      <h2>Your best customers already buy on account. <i class="s">Now Shopify knows it too.</i></h2>
+    </div>
+    <div class="four rev">
+      <div><h3>See who owes what</h3><p>Total owed, what's overdue and how old it is, on one screen in your Shopify admin. No spreadsheet to keep in step.</p></div>
+      <div><h3>Nobody is just turned away</h3><p>A customer over their limit online still sees Pay on account, with the reason. The order waits for you instead of being lost.</p></div>
+      <div><h3>Statements that send themselves</h3><p>A statement for every account each month, as a PDF, emailed with a link to pay once you switch that on.</p></div>
+      <div><h3>Limits your staff can see</h3><p>The till shows the balance and what's left before the sale, with a warning if it would go over.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="who" style="padding-top:0">
+  <div class="wrap cols">
+    <div class="head rev">
+      <span class="kicker">Who it's for</span>
+      <h2>Shops whose regulars <i class="s">pay later.</i></h2>
+      <p class="lede">If your customers say "put it on my account", this is for you.</p>
+    </div>
+    <div class="who rev">
+      <p><b>Trade counters and builders' merchants</b><span>Trade customers buy at the counter against a PO or job reference, or order online to collect or have delivered.</span></p>
+      <p><b>Golf and country-club pro shops</b><span>Members put pro shop purchases on their account and settle by statement.</span></p>
+      <p><b>Marinas</b><span>Berth holders put chandlery and shop purchases on account and settle by statement.</span></p>
+      <p><b>Equestrian and feed stores</b><span>Regular customers put feed and bedding on account, at the counter or ordered online to collect.</span></p>
+      <p><b>Farm and village shops</b><span>Local customers keep a house account at the till and settle by statement.</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="s" style="padding-top:0">
+  <div class="wrap">
+    <div class="head rev">
+      <span class="kicker">Already keep accounts somewhere?</span>
+      <h2>Bring them with you, <i class="s">or leave them where they are.</i></h2>
+    </div>
+    <div class="two rev">
+      <div class="way">
+        <span class="kicker">Moving from a spreadsheet or QuickBooks POS</span>
+        <h3>Import what everyone owes.</h3>
+        <p>Bring in your customers and their opening balances from a CSV file, with a ready-made column layout for QuickBooks POS customer lists.</p>
+        <ul>
+          <li>Nothing is written until you've checked the totals and pressed Import.</li>
+          <li>An import can be undone until the accounts are used.</li>
+          <li>Or start from the unpaid orders already in your Shopify.</li>
+        </ul>
+      </div>
+      <div class="way dark">
+        <span class="kicker" style="color:var(--dim)">Works with Xero and QuickBooks Online</span>
+        <h3>Your books stay your books.</h3>
+        <p>Keep the accounts in Tickbook and send account sales and payments to Xero or QuickBooks Online. Or keep them in Xero and let Tickbook read each balance.</p>
+        <ul>
+          <li>With accounts kept in Xero, Tickbook decides who can pay on account online from the Xero balance.</li>
+          <li>It can raise the Xero invoice for each online order, or leave that to whatever does it now.</li>
+          <li>In that mode the till, statements and reminders stay with Xero.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="pricing" style="padding-top:0">
+  <div class="wrap">
+    <div class="head rev">
+      <span class="kicker">Pricing</span>
+      <h2>One plan. <i class="s">Everything in it.</i></h2>
+    </div>
+    <div class="one rev">
+      <div>
+        <div class="p">$49<small> /month</small></div>
+        <p class="d">30-day free trial. Billed by Shopify, on your usual Shopify bill. Cancel any time by uninstalling.</p>
+      </div>
+      <ul>
+        <li>Trade accounts with credit limits</li>
+        <li>Works at the till and online</li>
+        <li>Statements by email, with PDFs</li>
+        <li>Take payments on account</li>
+        <li>Approvals, exceptions and audit log</li>
+        <li>Keep the ledger in Tickbook or Xero</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="s" style="padding-top:0">
+  <div class="wrap cols">
+    <div class="head rev">
+      <span class="kicker">Straight answers</span>
+      <h2>What it needs, and what it <i class="s">doesn't do.</i></h2>
+      <p class="lede">Better you know now than after you've set it up.</p>
+    </div>
+    <div class="rows rev">
+      <p><span>A Shopify online store. Shopify POS is optional: add it if you sell on account at a counter.</span></p>
+      <p><span>Online, the customer must be signed in and have an account, and the order must be in your shop's currency.</span></p>
+      <p><span>Works without Shopify B2B, and alongside it if you use both.</span></p>
+      <p class="no"><span>Tickbook doesn't lend money and adds no interest or fees. You run your own accounts, on your own terms.</span></p>
+      <p class="no"><span>It can't stop a sale at the till. Shopify doesn't let apps do that, so the tile warns your staff and anything that needs a look is listed under Exceptions.</span></p>
+      <p class="no"><span>It can't open the cash drawer for an account payment. Shopify doesn't let apps do that either.</span></p>
+      <p class="no"><span>A statement is not a VAT invoice.</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="questions" style="padding-top:0">
+  <div class="wrap cols">
+    <div class="head rev">
+      <span class="kicker">Questions</span>
+      <h2>The ones shops <i class="s">ask first.</i></h2>
+    </div>
+    <div class="rev">
+      <details><summary>Does Tickbook lend money or charge interest?</summary><p>No. Tickbook doesn't lend money and adds no interest or fees. Your shop runs its own customer accounts, on its own terms. Tickbook keeps the record and does the checking.</p></details>
+      <details><summary>What is Mark unpaid?</summary><p>It's Shopify POS's own option to complete a sale without payment. Tickbook puts that sale on the customer's account.</p></details>
+      <details><summary>Why can't a customer see Pay on account?</summary><p>They must be signed in and have a Tickbook account, and the order must be in your shop's currency. If you've set a Pay on account tag, they need that tag too.</p></details>
+      <details><summary>What happens when someone is over their limit?</summary><p>Online, by default they still see Pay on account, marked "needs approval" with the reason, and the order waits under Exceptions for you to approve or decline. You can choose to hide it in those cases instead. At the till, the tile warns your staff before the sale.</p></details>
+      <details><summary>Do I need Shopify B2B as well?</summary><p>No. Shopify B2B gives companies their own prices and payment terms online. Tickbook keeps one account across the till and online, with the limit checked and a monthly statement. They do different jobs and you can use both.</p></details>
+      <details><summary>Can I bring over my existing accounts?</summary><p>Yes. Import your customers and what each one owes from a CSV file, or start from the unpaid orders already in your Shopify. Nothing is written until you've checked the totals.</p></details>
+      <details><summary>Does it work with my accounts software?</summary><p>It works with Xero and QuickBooks Online. Keep the accounts in Tickbook and send sales and payments across, or keep them in Xero and let Tickbook read each customer's balance.</p></details>
+      <details><summary>Do you do bar tabs?</summary><p>Yes, at the till: open a tab, add rounds, and close it paid or on the customer's account.</p></details>
+      <details><summary>What if my subscription lapses?</summary><p>Everything works for 14 days with a reminder. After that the till tile pauses, Pay on account is hidden online and emails pause. Nothing recorded is lost.</p></details>
+      <details><summary>What happens if I uninstall?</summary><p>Your data is kept for 48 hours in case you reinstall, then deleted, so export your accounts first. Pay on account is a payment method you added in Shopify, so deactivate it there too: once Tickbook is gone, nothing checks who can choose it.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="s" id="live" style="padding-top:0">
+  <div class="wrap">
+    <div class="end rev" id="end">
+      <div class="light"></div>
+      <span class="soon"><span class="dot"></span>Submitted to Shopify for review</span>
+      <h2>Nearly <i class="s">out.</i></h2>
+      <p class="lede">Olly here. I built Tickbook because shops kept telling me the same thing: their best customers buy on account, and the account lives in a spreadsheet, a notebook or someone's head. If that's you, I'd love to hear how you do it today, and I'll tell you the day it's live.</p>
+      <div class="sig"><span class="av">OB</span><span><b>Oliver Barry</b><br>Founder, Tickbook</span></div>
+      <div class="addr">
+        <code id="em">olly@tickbook.uk</code>
+        <a class="btn" href="mailto:olly@tickbook.uk?subject=Tell%20me%20when%20Tickbook%20is%20live">Email Olly</a>
+        <button class="btn" type="button" id="copy" style="background:transparent;color:inherit;border:1px solid currentColor">Copy the address</button>
+        <small id="copied" role="status">Email me and I'll let you know.</small>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <nav aria-label="Footer">
+    <a href="https://www.tickbook.uk/support">Support</a>
+    <a href="https://www.tickbook.uk/privacy">Privacy</a>
+    <a href="https://www.tickbook.uk/terms">Terms</a>
+    <a href="https://www.tickbook.uk/dpa">Data processing</a>
+    <a href="https://www.tickbook.uk/refunds">Refunds</a>
+  </nav>
+  <p>Tickbook is a product of Aprilfourteen Ltd, registered in England and Wales, company no. 13109333. Registered office: 2 The Willows, Buntingford, SG9 9EN, United Kingdom.</p>
+</footer>
+
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var NAME="Harbour Joinery";
+  var S={
+    till:{
+      ok:{b:543.5,mt:"On the account",steps:[["At the counter","Staff add "+NAME+" to the cart."],["The till tile","Balance £363.50, nothing overdue, £636.50 available."],["Mark unpaid","Staff finish the £180 sale with Mark unpaid.",1],["On the account","Balance £543.50. It'll be on the next statement."]],ml:"On the till tile",ms:"Active · £636.50 available credit",mb:"Your staff see the balance, what's overdue and what's left before they take the sale."},
+      over:{b:363.5,mt:"Would go over",steps:[["At the counter","A £700 sale for "+NAME+"."],["The till tile warns","Before anything goes on the account."],["Your staff decide","Take payment now, or put it on the account. You can require a manager's approval code.",1],["You're in control","The limit is yours to hold or to bend."]],ml:"On the till tile",ms:"This sale would go over the limit",mb:"£700.00 against £636.50 of available credit. The warning shows on the cart, where your staff can't miss it."},
+      due:{b:363.5,mt:"Overdue",steps:[["At the counter","Staff add "+NAME+" to the cart."],["The till tile warns","£245.50 of the balance is overdue."],["Your staff decide","Ask for a payment first, or carry on.",1],["Take a payment there","At the till, and it settles the oldest orders first."]],ml:"On the till tile",ms:"Overdue balance",mb:"£245.50 of the £363.50 balance is overdue. Staff can take a payment at the till there and then."},
+      hold:{b:363.5,mt:"On hold",steps:[["At the counter","Staff add "+NAME+" to the cart."],["The till tile warns","You've put this account on hold."],["Your staff know","Before the sale, not after it.",1],["Lift it when you're ready","One switch on the account."]],ml:"On the till tile",ms:"Account on hold",mb:"You put accounts on hold yourself, and the till shows it the moment the customer is added to the cart."}
+    },
+    web:{
+      ok:{b:543.5,mt:"On the account",steps:[["Signed in online",NAME+" adds £180 of stock to the cart."],["Pay on account","Offered at checkout, because the account can take the order."],["Order placed","Nothing to pay now. Collect in store or have it delivered."],["On the account","Balance £543.50. It'll be on the next statement."]],ml:"At your checkout",ms:"Pay on account",mb:"Shown only to signed-in customers who have an account with you."},
+      over:{b:363.5,mt:"Waiting for you",steps:[["Signed in online","A £700 order: £63.50 more than is available."],["Still offered","Marked as needing approval, with the reason."],["It waits for you","You're emailed. Approve or decline under Exceptions.",1],["Approved","It goes on the account and is released to fulfil."]],ml:"At your checkout",ms:"Pay on account: needs approval (£63.50 over your limit)",mb:"The order is placed but held. It isn't on their account until you say so."},
+      due:{b:363.5,mt:"Waiting for you",steps:[["Signed in online",NAME+" orders with £245.50 overdue."],["Still offered","Marked as needing approval, with the reason."],["It waits for you","Approve it, or decline and it's cancelled.",1],["Or they pay first","From the link on their statement."]],ml:"At your checkout",ms:"Pay on account: needs approval (£245.50 overdue)",mb:"They aren't turned away, and you aren't committed. The order waits for your decision."},
+      hold:{b:363.5,mt:"Waiting for you",steps:[["Signed in online",NAME+" orders while on hold."],["Still offered","Marked as needing approval, with the reason."],["It waits for you","Approve this one order, or decline it.",1],["Your call, every time","Or choose to hide Pay on account in these cases."]],ml:"At your checkout",ms:"Pay on account: needs approval (account on hold)",mb:"That's the default. If you'd rather it disappeared for accounts on hold, that's one setting."}
+    }
+  };
+  var m="till",o="ok",auto=!reduce,timer,cur=363.5;
+  function money(v){return "£"+v.toFixed(2)}
+  function tween(a,b,from,to){
+    if(reduce||from===to){a.textContent=money(to);b.textContent=money(1000-to);return}
+    var t0=performance.now(),d=800;
+    (function f(t){var p=Math.min(1,(t-t0)/d);p=1-Math.pow(1-p,3);var v=from+(to-from)*p;a.textContent=money(v);b.textContent=money(1000-v);if(p<1)requestAnimationFrame(f)})(t0);
+  }
+  function draw(){
+    var d=S[m][o];
+    $("steps").innerHTML=d.steps.map(function(s){return '<li'+(s[2]?' class="you"':'')+'>'+(s[2]?'<em>You decide</em>':'')+'<b>'+s[0]+'</b><span>'+s[1]+'</span></li>'}).join("");
+    $("bk").style.flexBasis=(d.b/10)+"%";$("br").style.flexBasis=(100-d.b/10)+"%";
+    tween($("vk"),$("vr"),cur,d.b);cur=d.b;
+    var held=d.b===363.5;$("row").className="new swap"+(held?" held":"");$("rt").innerHTML=(o==="over"?"Order #1068 · £700.00":"Order #1068")+(held?' <span class="tag">'+(m==="web"?"needs approval":"staff decide")+"</span>":"");$("ra").textContent=held?"held":"£180.00";$("mt").textContent=d.mt;$("ml").textContent=d.ml;$("ms").textContent=d.ms;$("mb").textContent=d.mb;
+    var mail=$("mail");mail.classList.remove("swap");void mail.offsetWidth;mail.classList.add("swap");
+    var pg=$("prog");pg.classList.remove("run");if(auto){void pg.offsetWidth;pg.classList.add("run")}
+    document.querySelectorAll("#play [data-m]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.m===m)});
+    document.querySelectorAll("#play [data-o]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.o===o)});
+  }
+  function stop(){auto=false;clearInterval(timer)}
+  document.querySelectorAll("#play [data-m]").forEach(function(b){b.addEventListener("click",function(){stop();m=b.dataset.m;draw()})});
+  document.querySelectorAll("#play [data-o]").forEach(function(b){b.addEventListener("click",function(){stop();o=b.dataset.o;draw()})});
+  draw();
+  if(auto){
+    var order=[["web","ok"],["web","over"],["till","over"],["till","due"],["web","hold"],["till","ok"]],i=0;
+    timer=setInterval(function(){if(!auto)return;m=order[i][0];o=order[i][1];i=(i+1)%order.length;draw()},5200);
+  }
+  function light(el){el.addEventListener("pointermove",function(e){var r=el.getBoundingClientRect();el.style.setProperty("--mx",(e.clientX-r.left)+"px");el.style.setProperty("--my",(e.clientY-r.top)+"px")})}
+  if(!reduce){
+    light($("stage"));light($("end"));
+    var fl=$("float"),card=$("card");
+    if(window.matchMedia("(min-width: 961px)").matches){
+      $("stage").addEventListener("pointermove",function(e){var r=fl.getBoundingClientRect(),x=(e.clientX-(r.left+r.width/2))/r.width,y=(e.clientY-(r.top+r.height/2))/r.height;card.style.setProperty("--ry",(-6+x*8)+"deg");card.style.setProperty("--rx",(3-y*6)+"deg")});
+      $("stage").addEventListener("pointerleave",function(){card.style.removeProperty("--ry");card.style.removeProperty("--rx")});
+    }
+  }
+  (function(){
+    var scr=$("screen"),curs=$("cur"),run=0,tab="ex";
+    var crumbs={ex:"Tickbook · Exceptions",pay:"Tickbook · Payments",st:"What your customer receives"};
+    var first={ex:"s-ex1",pay:"s-pay2",st:"s-st1"};
+    function show(id){scr.querySelectorAll(".sc").forEach(function(x){x.classList.toggle("on",x.id===id)})}
+    function wait(ms,my){return new Promise(function(r){setTimeout(function(){r(my===run)},ms)})}
+    function to(id){var e=$(id),a=e.getBoundingClientRect(),b=scr.getBoundingClientRect();curs.style.transform="translate("+(a.left-b.left+a.width*.6)+"px,"+(a.top-b.top+a.height*.55)+"px)"}
+    async function click(id,my){to(id);if(!await wait(950,my))return false;curs.classList.remove("tap");void curs.getBoundingClientRect();curs.classList.add("tap");$(id).classList.add("hit");if(!await wait(260,my))return false;$(id).classList.remove("hit");return true}
+    async function type(id,text,my){var e=$(id);e.textContent="";for(var i=0;i<text.length;i++){e.textContent+=text[i];if(!await wait(60,my))return false}return true}
+    var T={
+      ex:async function(my){show("s-ex1");if(!await wait(2400,my))return;if(!await click("b-ap",my))return;show("s-ex2");await wait(3800,my)},
+      pay:async function(my){show("s-pay1");$("ta").textContent="";if(!await wait(700,my))return;if(!await type("ta","TA-0042",my))return;if(!await click("b-find",my))return;show("s-pay2");if(!await wait(2200,my))return;if(!await click("b-rec",my))return;show("s-pay3");await wait(3800,my)},
+      st:async function(my){$("crumb").textContent=crumbs.st;show("s-st1");if(!await wait(2600,my))return;if(!await click("b-link",my))return;show("s-st2");if(!await wait(2400,my))return;if(!await click("b-cont",my))return;$("crumb").textContent="Tickbook · Payments";show("s-st3");await wait(3800,my)}
+    };
+    var order=["ex","pay","st"],durs={ex:"7.5s",pay:"10.6s",st:"13.3s"},autoT=true,seen=false;
+    function tabs(){document.querySelectorAll("[data-t]").forEach(function(b){var on=b.dataset.t===tab;b.setAttribute("aria-selected",on);b.classList.remove("run");b.style.setProperty("--dur",durs[b.dataset.t]);if(on)$("cap").textContent=b.querySelector("span").textContent;if(on&&autoT&&!reduce){void b.offsetWidth;b.classList.add("run")}})}
+    async function play(t){tab=t;var my=++run;$("crumb").textContent=crumbs[t];tabs();
+      if(reduce){show(first[t]);curs.style.display="none";return}
+      await T[t](my);if(my!==run)return;
+      if(autoT){play(order[(order.indexOf(t)+1)%3])}else{play(t)}
+    }
+    document.querySelectorAll("[data-t]").forEach(function(b){b.addEventListener("click",function(){autoT=false;play(b.dataset.t)})});
+    if(reduce||!("IntersectionObserver" in window)){play("ex")}
+    else{new IntersectionObserver(function(es,ob){es.forEach(function(e){if(e.isIntersecting&&!seen){seen=true;play("ex");ob.disconnect()}})},{threshold:.25}).observe(scr)}
+  })();
+  var things=["Builders' merchants","Golf clubs","Marinas","Feed stores","Farm shops","Trade counters","Pro shops","Chandleries","Village shops","Wholesalers","Equestrian stores","Country clubs"];
+  var hh=things.map(function(t){return "<span>"+t+"</span>"}).join("");$("marq").innerHTML=hh+hh;
+  $("copy").addEventListener("click",function(){
+    var t=$("em").textContent,say=function(x){$("copied").textContent=x};
+    function sel(){var r=document.createRange();r.selectNodeContents($("em"));var s=getSelection();s.removeAllRanges();s.addRange(r);say("Selected. Copy it from here.")}
+    try{navigator.clipboard.writeText(t).then(function(){say("Copied. Paste it into a new email.")},sel)}catch(e){sel()}
+  });
+  if(!reduce&&"IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.remove("pre");io.unobserve(e.target)}})},{rootMargin:"0px 0px -8% 0px"});
+    document.querySelectorAll(".rev").forEach(function(el){if(el.getBoundingClientRect().top>innerHeight){el.classList.add("pre");io.observe(el)}});
+  }
+})();
+</script>
+
+</body>
+</html>
